@@ -1,0 +1,27 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to Docker Hub..."
+      - echo "Building Docker image..."
+      - docker build -t calculadora-app:latest .
+  
+  build:
+    commands:
+      - echo "Running container..."
+      - docker run --name test-container calculadora-app:latest
+      - docker cp test-container:/app/resultado.json ./resultado.json
+      - docker cp test-container:/app/backup.log ./backup.log
+      - docker rm test-container
+  
+  post_build:
+    commands:
+      - echo "Build completed on `date`"
+      - ls -la
+
+artifacts:
+  files:
+    - resultado.json
+    - backup.log
+  discard-paths: no
