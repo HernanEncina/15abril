@@ -3,13 +3,11 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Logging in to Docker Hub..."
-      - echo "Building Docker image..."
+      - echo "Running container..."
       - docker build -t calculadora-app:latest .
   
   build:
     commands:
-      - echo "Running container..."
       - docker run --name test-container calculadora-app:latest
       - docker cp test-container:/app/resultado.json ./resultado.json
       - docker cp test-container:/app/backup.log ./backup.log
@@ -17,11 +15,15 @@ phases:
   
   post_build:
     commands:
-      - echo "Build completed on `date`"
-      - ls -la
+      - echo "Deploying to EC2..."
+      - echo "$SSH_KEY" | base64 -d > key.pem
+      - chmod 400 key.pem
+      - scp -o StrictHostKeyChecking=no -i key.pem resultado.json ubuntu@$EC2_IP:/home/ubuntu/calculadora/
+      - scp -o StrictHostKeyChecking=no -i key.pem backup.log ubuntu@$EC2_IP:/home/ubuntu/calculadora/
+      - ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP "cd /home/ubuntu/calculadora && cat backup.log"
+      - rm key.pem
 
 artifacts:
   files:
     - resultado.json
     - backup.log
-  discard-paths: no
