@@ -2,16 +2,16 @@ version: 0.2
 
 phases:
   pre_build:
-    commands:
-      - echo "=== PRE_BUILD START ==="
-      - ls -la
-      - echo "Setting up SSH key..."
-      - chmod 400 key.pem
-      - ls -la key.pem
-      - echo "Testing SSH connection to EC2..."
-      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "echo 'SSH CONNECTION SUCCESSFUL'"
-      - echo "Building Docker image..."
-      - docker build -t calculadora-app:latest .
+  commands:
+    - echo "=== PRE_BUILD START ==="
+    - ls -la
+    - echo "Setting up SSH key..."
+    - chmod 400 key.pem
+    - ls -la key.pem
+    - echo "Testing SSH connection to EC2..."
+    - >-
+      ssh -o StrictHostKeyChecking=no -i key.pem
+      ec2-user@$EC2_IP "echo SSH_CONNECTION_SUCCESSFUL"
   
   build:
     commands:
