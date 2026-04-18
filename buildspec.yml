@@ -17,25 +17,33 @@ phases:
 
   post_build:
     commands:
-      - echo "Uploading project to EC2..."
-
+      - echo "Preparing remote directory..."
       - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "rm -rf $APP_DIR && mkdir -p $APP_DIR"
 
+      - echo "Uploading project to EC2..."
       - scp -o StrictHostKeyChecking=no -i key.pem -r ./* ec2-user@$EC2_IP:$APP_DIR/
 
       - echo "Building and running container on EC2..."
 
-      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "
+      - |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP << 'EOF'
           set -e
-          cd $APP_DIR
+
+          cd /home/ec2-user/calculadora
+
+          echo "Current directory:"
+          pwd
+          ls -la
 
           docker stop calculadora || true
           docker rm calculadora || true
 
+          echo "Building Docker image..."
           docker build -t calculadora-app .
 
+          echo "Running container..."
           docker run -d -p 80:3000 --name calculadora calculadora-app:latest
-        "
+        EOF
 
 artifacts:
   files:
