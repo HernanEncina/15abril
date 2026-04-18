@@ -3,21 +3,41 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - chmod 400 sgtKeyes.pem
+      - echo "=== PRE_BUILD START ==="
+      - ls -la
+      - echo "Setting up SSH key..."
+      - chmod 400 key.pem
+      - ls -la key.pem
+      - echo "Testing SSH connection to EC2..."
+      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "echo 'SSH CONNECTION SUCCESSFUL'"
+      - echo "Building Docker image..."
       - docker build -t calculadora-app:latest .
   
   build:
     commands:
+      - echo "=== BUILD START ==="
+      - echo "Running container..."
       - docker run --name test-container calculadora-app:latest
+      - echo "Copying files from container..."
       - docker cp test-container:/app/resultado.json ./resultado.json
       - docker cp test-container:/app/backup.log ./backup.log
       - docker rm test-container
+      - echo "Files created:"
+      - ls -la resultado.json backup.log
   
   post_build:
     commands:
-      - scp -o StrictHostKeyChecking=no -i sgtKeyes.pem resultado.json ubuntu@$EC2_IP:/home/ubuntu/calculadora/
-      - scp -o StrictHostKeyChecking=no -i sgtKeyes.pem backup.log ubuntu@$EC2_IP:/home/ubuntu/calculadora/
-      - ssh -o StrictHostKeyChecking=no -i sgtKeyes.pem ubuntu@$EC2_IP "cd /home/ubuntu/calculadora && cat backup.log"
+      - echo "=== POST_BUILD START ==="
+      - echo "EC2_IP: $EC2_IP"
+      - echo "Copying resultado.json to EC2..."
+      - scp -o StrictHostKeyChecking=no -i key.pem resultado.json ec2-user@$EC2_IP:/home/ec2-user/calculadora/
+      - echo "Copying backup.log to EC2..."
+      - scp -o StrictHostKeyChecking=no -i key.pem backup.log ec2-user@$EC2_IP:/home/ec2-user/calculadora/
+      - echo "Verifying files on EC2..."
+      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "ls -la /home/ec2-user/calculadora/"
+      - echo "=== DISPLAYING BACKUP.LOG FROM EC2 ==="
+      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "cd /home/ec2-user/calculadora && echo '---BACKUP LOG CONTENT---' && cat backup.log && echo '---END OF LOG---'"
+      - echo "=== DEPLOYMENT COMPLETE ==="
 
 artifacts:
   files:
