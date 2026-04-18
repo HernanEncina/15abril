@@ -3,7 +3,7 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Running container..."
+      - chmod 400 sgtKeyes.pem
       - docker build -t calculadora-app:latest .
   
   build:
@@ -15,13 +15,9 @@ phases:
   
   post_build:
     commands:
-      - echo "Deploying to EC2..."
-      - echo "$SSH_KEY" | base64 -d > key.pem
-      - chmod 400 key.pem
-      - scp -o StrictHostKeyChecking=no -i key.pem resultado.json ubuntu@$EC2_IP:/home/ubuntu/calculadora/
-      - scp -o StrictHostKeyChecking=no -i key.pem backup.log ubuntu@$EC2_IP:/home/ubuntu/calculadora/
-      - ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP "cd /home/ubuntu/calculadora && cat backup.log"
-      - rm key.pem
+      - scp -o StrictHostKeyChecking=no -i sgtKeyes.pem resultado.json ubuntu@$EC2_IP:/home/ubuntu/calculadora/
+      - scp -o StrictHostKeyChecking=no -i sgtKeyes.pem backup.log ubuntu@$EC2_IP:/home/ubuntu/calculadora/
+      - ssh -o StrictHostKeyChecking=no -i sgtKeyes.pem ubuntu@$EC2_IP "cd /home/ubuntu/calculadora && cat backup.log"
 
 artifacts:
   files:
