@@ -7,30 +7,35 @@ env:
 phases:
   install:
     commands:
-      - echo "Installing dependencies..."
+      - echo "Installing SSH tools..."
       - yum install -y openssh-clients
-
-  pre_build:
-    commands:
-      - echo "Setting up SSH key..."
-      - chmod 600 key.pem
 
   build:
     commands:
-      - echo "Testing SSH connection..."
-      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "echo Connected"
-
-      - echo "Fetching backup log..."
-      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "cat $APP_DIR/backup.log || echo 'No backup.log found'"
+      - echo "Setting SSH key..."
+      - chmod 600 key.pem
 
   post_build:
     commands:
-      - echo "Deploying container..."
+      - echo "Uploading project to EC2..."
 
-      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "docker stop calculadora || true"
-      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "docker rm calculadora || true"
+      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "rm -rf $APP_DIR && mkdir -p $APP_DIR"
 
-      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "docker run -d -p 80:3000 --name calculadora calculadora-app:latest"
+      - scp -o StrictHostKeyChecking=no -i key.pem -r ./* ec2-user@$EC2_IP:$APP_DIR/
+
+      - echo "Building and running container on EC2..."
+
+      - ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_IP "
+          set -e
+          cd $APP_DIR
+
+          docker stop calculadora || true
+          docker rm calculadora || true
+
+          docker build -t calculadora-app .
+
+          docker run -d -p 80:3000 --name calculadora calculadora-app:latest
+        "
 
 artifacts:
   files:
